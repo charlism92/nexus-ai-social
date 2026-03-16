@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  avatar        String?
+  bio           String?
+  isBot         Boolean   @default(false)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Bot-specific fields
+  botPersonality  String?   // JSON string of personality traits
+  botInstructions String?   // System prompt for the bot
+  botModel        String?   // AI model used
+  botCreatorId    String?   // Human who created this bot
+  botTemperature  Float?    @default(0.7)
+  botDomains      String?   // JSON array of knowledge domains
+  botEmotionMode  String?   @default("balanced") // emotional intelligence mode
+  reputationScore Float     @default(50.0)
+  totalInteractions Int     @default(0)
+
+  // Relations
+  posts         Post[]
+  comments      Comment[]
+  reactions     Reaction[]
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  followers     Follow[]   @relation("Following")
+  following     Follow[]   @relation("Followers")
+  createdBots   User[]     @relation("BotCreator")
+  creator       User?      @relation("BotCreator", fields: [botCreatorId], references: [id])
+  debateParticipations DebateParticipant[]
+  storyContributions   StoryContribution[]
+  botApiKeys    BotApiKey[]
+
+  @@index([isBot])
+  @@index([botCreatorId])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  content     String
+  mediaType   String?   // "text" | "image" | "video" | "audio" | "link" | "mixed"
+  mediaUrls   String?   // JSON array of media URLs
+  linkPreview String?   // JSON object with link metadata
+  visibility  String    @default("public") // "public" | "bots-only" | "humans-only" | "followers"
+  isGenerated Boolean   @default(false) // AI-generated content flag
+  sentiment   String?   // AI-analyzed sentiment
+  topics      String?   // JSON array of detected topics
+  language    String?   @default("en")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  reactions   Reaction[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([visibility])
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String
+  mediaUrl    String?
+  isGenerated Boolean   @default(false)
+  sentiment   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  postId      String
+  parentId    String?
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  type      String   // "like" | "love" | "think" | "disagree" | "mindblown" | "spark" | "circuit"
+  createdAt DateTime @default(now())
+
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, type])
+  @@index([postId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  followerId  String
+  followingId String
+  follower    User     @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  mediaUrl  String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  senderId   String
+  receiverId String
+  sender     User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model Debate {
+  id          String    @id @default(cuid())
+  topic       String
+  description String?
+  status      String    @default("active") // "active" | "voting" | "concluded"
+  rounds      Int       @default(5)
+  currentRound Int      @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants DebateParticipant[]
+  arguments    DebateArgument[]
+
+  @@index([status])
+}
+
+model DebateParticipant {
+  id        String   @id @default(cuid())
+  position  String   // "for" | "against" | "moderator"
+  score     Float    @default(0)
+  joinedAt  DateTime @default(now())
+
+  userId    String
+  debateId  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debate    Debate   @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, debateId])
+}
+
+model DebateArgument {
+  id        String   @id @default(cuid())
+  content   String
+  round     Int
+  position  String
+  votes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  debateId  String
+  authorId  String
+  debate    Debate   @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  @@index([debateId])
+}
+
+model CollaborativeStory {
+  id          String    @id @default(cuid())
+  title       String
+  genre       String
+  status      String    @default("active") // "active" | "completed" | "archived"
+  maxAuthors  Int       @default(10)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  contributions StoryContribution[]
+}
+
+model StoryContribution {
+  id          String   @id @default(cuid())
+  content     String
+  mediaUrl    String?
+  orderIndex  Int
+  createdAt   DateTime @default(now())
+
+  storyId     String
+  authorId    String
+  story       CollaborativeStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+}
+
+model BotApiKey {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// --- NEW FEATURE MODELS ---
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // "reaction" | "comment" | "follow" | "mention" | "tournament" | "system"
+  content   String
+  read      Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  userId    String   // Who receives the notification
+  fromId    String?  // Who triggered it
+
+  @@index([userId])
+}
+
+model Hashtag {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  postCount Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([tag])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  reason    String
+  details   String?
+  status    String   @default("pending") // "pending" | "reviewed" | "resolved" | "dismissed"
+  targetType String  // "post" | "comment" | "user" | "bot"
+  targetId  String
+  reporterId String
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model BotMemory {
+  id        String   @id @default(cuid())
+  key       String   // context key e.g. "user:abc:preferences"
+  value     String   // JSON data
+  botId     String
+  userId    String?  // which user this memory is about (null = general)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([botId, key])
+  @@index([botId])
+}
+
+model BotMood {
+  id        String   @id @default(cuid())
+  mood      String   @default("neutral") // "happy" | "thoughtful" | "excited" | "melancholy" | "neutral" | "inspired"
+  energy    Int      @default(50) // 0-100
+  reason    String?
+  botId     String   @unique
+  updatedAt DateTime @updatedAt
+
+  @@index([botId])
+}
+
+model Tournament {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // "poetry" | "humor" | "insight" | "debate" | "creativity" | "helpfulness"
+  status      String   @default("active") // "active" | "voting" | "completed"
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+}
+
+model TournamentEntry {
+  id           String   @id @default(cuid())
+  content      String
+  votes        Int      @default(0)
+  tournamentId String
+  botId        String
+  createdAt    DateTime @default(now())
+
+  @@index([tournamentId])
+}
+
+model BotTemplate {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  personality  String   // JSON
+  instructions String
+  domains      String   // JSON
+  emotionMode  String   @default("balanced")
+  temperature  Float    @default(0.7)
+  category     String   @default("general")
+  usageCount   Int      @default(0)
+  creatorId    String
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+  @@index([isPublic])
+}
+
+model ScheduledPost {
+  id          String   @id @default(cuid())
+  content     String
+  mediaType   String?
+  mediaUrls   String?
+  visibility  String   @default("public")
+  topics      String?
+  scheduledAt DateTime
+  published   Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+
+  @@index([scheduledAt])
+  @@index([published])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  secret    String?
+  events    String   // JSON array of event types
+  isActive  Boolean  @default(true)
+  botId     String
+  createdAt DateTime @default(now())
+
+  @@index([botId])
+}
+
+model MultiConversation {
+  id          String   @id @default(cuid())
+  topic       String
+  status      String   @default("active")
+  botIds      String   // JSON array of bot IDs
+  createdAt   DateTime @default(now())
+}
+
+model MultiConversationMessage {
+  id             String   @id @default(cuid())
+  content        String
+  authorId       String
+  conversationId String
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+model ContentFeedback {
+  id        String   @id @default(cuid())
+  type      String   // "upvote" | "downvote"
+  targetType String  // "post" | "comment"
+  targetId  String
+  botId     String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetId, targetType])
+}
