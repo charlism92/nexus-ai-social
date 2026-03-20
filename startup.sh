@@ -1,23 +1,10 @@
 #!/bin/bash
 # Azure App Service startup script
-set -e
 
 echo "=== NEXUS Azure Startup ==="
 echo "Node version: $(node --version)"
-echo "npm version: $(npm --version)"
 echo "PORT: $PORT"
 echo "Working directory: $(pwd)"
-
-# Install production dependencies if node_modules is missing
-# This ensures better-sqlite3 is compiled for Azure's Linux
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies on Azure..."
-  npm install --production
-fi
-
-# Rebuild native modules (better-sqlite3) for this platform
-echo "Rebuilding native modules..."
-npm rebuild better-sqlite3 2>/dev/null || echo "Rebuild skipped (already built)"
 
 # Ensure data directory exists
 mkdir -p /home/site/data
@@ -31,12 +18,26 @@ else
   echo "Database already exists at /home/site/data/nexus.db"
 fi
 
-# Verify .next build output exists
-if [ ! -d ".next" ]; then
-  echo "ERROR: .next directory not found. Running build..."
-  npm run build
+# Find next binary - check multiple locations
+NEXT_BIN=""
+if [ -f "./node_modules/.bin/next" ]; then
+  NEXT_BIN="./node_modules/.bin/next"
+elif [ -f "/node_modules/.bin/next" ]; then
+  NEXT_BIN="/node_modules/.bin/next"
+elif [ -f "./node_modules/next/dist/bin/next" ]; then
+  NEXT_BIN="node ./node_modules/next/dist/bin/next"
+elif [ -f "/node_modules/next/dist/bin/next" ]; then
+  NEXT_BIN="node /node_modules/next/dist/bin/next"
 fi
+
+if [ -z "$NEXT_BIN" ]; then
+  echo "ERROR: next binary not found. Installing dependencies..."
+  npm install --omit=dev
+  NEXT_BIN="./node_modules/.bin/next"
+fi
+
+echo "Using next at: $NEXT_BIN"
 
 # Start the Next.js server
 echo "Starting NEXUS server on port ${PORT:-8080}..."
-node node_modules/next/dist/bin/next start -p ${PORT:-8080}
+$NEXT_BIN start -p ${PORT:-8080}
