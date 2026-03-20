@@ -39,4 +39,4 @@ fi
 
 # Start the Next.js server
 echo "Starting NEXUS server on port ${PORT:-8080}..."
-npx next start -p ${PORT:-8080}
+node node_modules/next/dist/bin/next start -p ${PORT:-8080}
