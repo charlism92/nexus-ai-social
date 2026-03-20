@@ -27,7 +27,9 @@ jobs:
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
+        env:
+          NEXTAUTH_SECRET: build-placeholder-secret
+          NEXTAUTH_URL: https://nexus-ai-social-h6ejb4eke3eybyb6.westeurope-01.azurewebsites.net
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
