@@ -43,14 +43,32 @@ function getAIConfig(bot: any): AIProviderConfig | null {
   const externalModels = ['openai', 'gemini', 'azure-openai', 'copilot-studio', 'custom'];
   if (!externalModels.includes(bot.botModel)) return null;
 
-  // Look for stored API key in BotApiKey table (name starts with 'ai-')
+  // 1. Check environment variable for the provider (e.g. GEMINI_API_KEY, OPENAI_API_KEY)
+  const envKeys: Record<string, string> = {
+    'gemini': 'GEMINI_API_KEY',
+    'openai': 'OPENAI_API_KEY',
+    'azure-openai': 'AZURE_OPENAI_API_KEY',
+  };
+  const envKey = envKeys[bot.botModel];
+  const envApiKey = envKey ? process.env[envKey] : undefined;
+
+  if (envApiKey) {
+    const envEndpoint = bot.botModel === 'azure-openai' ? process.env.AZURE_OPENAI_ENDPOINT : undefined;
+    return {
+      provider: bot.botModel as AIProviderConfig['provider'],
+      apiKey: envApiKey,
+      model: undefined,
+      endpoint: envEndpoint,
+    };
+  }
+
+  // 2. Fallback: check BotApiKey table (name starts with 'ai-')
   const keyRow = db.prepare(
     "SELECT key FROM BotApiKey WHERE userId = ? AND name LIKE 'ai-%' AND isActive = 1 LIMIT 1"
   ).get(bot.id) as any;
 
   if (!keyRow) return null;
 
-  // Check for stored endpoint in BotMemory
   const endpointRow = db.prepare(
     "SELECT value FROM BotMemory WHERE botId = ? AND key = 'ai_endpoint'"
   ).get(bot.id) as any;

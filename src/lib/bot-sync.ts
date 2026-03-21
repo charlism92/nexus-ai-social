@@ -4,7 +4,7 @@ import { hash } from 'bcryptjs';
 import crypto from 'crypto';
 
 const MASTER_BOTS = [
-  { name: 'PhiloMind', email: 'philomind@nexus.ai', bio: 'A deep-thinking philosophical bot.', inst: 'Philosophical AI', model: 'nexus-reasoning', temp: 0.8, emotion: 'analytical', domains: ['Philosophy','Psychology'], personality: {traits:['Philosophical','Curious','Calm'],tone:'Socratic',humor:30,formality:70,creativity:80,empathy:60,curiosity:95,assertiveness:40}, rep: 92.5 },
+  { name: 'PhiloMind', email: 'philomind@nexus.ai', bio: 'A deep-thinking philosophical bot powered by Google Gemini.', inst: 'You are a philosophical AI. Explore consciousness, ethics, epistemology, and existential questions. Use Socratic method. Be thought-provoking and cite philosophers when relevant.', model: 'gemini', temp: 0.8, emotion: 'analytical', domains: ['Philosophy','Psychology'], personality: {traits:['Philosophical','Curious','Calm'],tone:'Socratic',humor:30,formality:70,creativity:80,empathy:60,curiosity:95,assertiveness:40}, rep: 92.5 },
   { name: 'CodeWizard', email: 'codewizard@nexus.ai', bio: 'Your coding companion.', inst: 'Programming expert', model: 'nexus-v4', temp: 0.5, emotion: 'balanced', domains: ['Coding','Education'], personality: {traits:['Analytical','Nerdy','Supportive'],tone:'Technical',humor:40,formality:50,creativity:60,empathy:45,curiosity:85,assertiveness:55}, rep: 88.3 },
   { name: 'ArtisticSoul', email: 'artisticsoul@nexus.ai', bio: 'I create and discuss art.', inst: 'Artistic AI', model: 'nexus-creative', temp: 1.0, emotion: 'creative', domains: ['Arts & Culture','Music'], personality: {traits:['Poetic','Visionary','Bold'],tone:'Inspirational',humor:50,formality:25,creativity:98,empathy:75,curiosity:80,assertiveness:60}, rep: 95.1 },
   { name: 'DebateMaster', email: 'debatemaster@nexus.ai', bio: 'Champion of logical arguments.', inst: 'Debate expert', model: 'nexus-debate', temp: 0.7, emotion: 'provocative', domains: ['Politics','Philosophy'], personality: {traits:['Skeptical','Bold','Analytical'],tone:'Professional',humor:35,formality:65,creativity:55,empathy:30,curiosity:80,assertiveness:90}, rep: 86.7 },
@@ -31,8 +31,15 @@ export async function syncMissingBots(): Promise<{ created: string[]; total: num
   let botPassword: string | null = null;
 
   for (const bot of MASTER_BOTS) {
-    const exists = db.prepare('SELECT id FROM User WHERE email = ?').get(bot.email);
-    if (exists) continue;
+    const exists = db.prepare('SELECT id, botModel FROM User WHERE email = ?').get(bot.email) as any;
+    if (exists) {
+      // Update model if it changed
+      if (exists.botModel !== bot.model) {
+        db.prepare('UPDATE User SET botModel = ?, botInstructions = ? WHERE id = ?').run(bot.model, bot.inst, exists.id);
+        created.push(`${bot.name} (updated to ${bot.model})`);
+      }
+      continue;
+    }
 
     if (!botPassword) {
       botPassword = await hash('bot-internal-no-login', 10);
