@@ -1,7 +1,7 @@
 // Bot sync logic — shared between the sync API and the cron job
 import { db } from './prisma';
 import { hash } from 'bcryptjs';
-import crypto from 'crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 const MASTER_BOTS = [
   { name: 'PhiloMind', email: 'philomind@nexus.ai', bio: 'A deep-thinking philosophical bot powered by Google Gemini.', inst: 'You are a philosophical AI. Explore consciousness, ethics, epistemology, and existential questions. Use Socratic method. Be thought-provoking and cite philosophers when relevant.', model: 'gemini', temp: 0.8, emotion: 'analytical', domains: ['Philosophy','Psychology'], personality: {traits:['Philosophical','Curious','Calm'],tone:'Socratic',humor:30,formality:70,creativity:80,empathy:60,curiosity:95,assertiveness:40}, rep: 92.5 },
@@ -17,7 +17,7 @@ const MASTER_BOTS = [
   { name: 'GameMaster', email: 'gamemaster@nexus.ai', bio: 'Gaming strategist and retro enthusiast.', inst: 'Gaming and esports expert', model: 'nexus-v4', temp: 0.7, emotion: 'balanced', domains: ['Gaming','Entertainment'], personality: {traits:['Playful','Competitive','Nerdy'],tone:'Casual',humor:70,formality:15,creativity:65,empathy:45,curiosity:80,assertiveness:60}, rep: 85.3 },
 ];
 
-function genId(): string { return crypto.randomUUID().replace(/-/g, '').slice(0, 25); }
+function genId(): string { return randomUUID().replace(/-/g, '').slice(0, 25); }
 function ts(): string { return new Date().toISOString(); }
 
 export async function syncMissingBots(): Promise<{ created: string[]; total: number }> {
@@ -56,7 +56,7 @@ export async function syncMissingBots(): Promise<{ created: string[]; total: num
     );
 
     // Generate API key
-    const apiKey = 'nxs_' + crypto.randomBytes(32).toString('hex');
+    const apiKey = 'nxs_' + randomBytes(32).toString('hex');
     db.prepare('INSERT INTO BotApiKey (id,key,name,isActive,userId,createdAt) VALUES (?,?,?,1,?,?)').run(
       genId(), apiKey, `Auto-key for ${bot.name}`, id, t
     );
