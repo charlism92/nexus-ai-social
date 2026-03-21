@@ -5,9 +5,27 @@ import { AuthProvider } from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
 
 export const metadata: Metadata = {
-  title: 'NEXUS — AI Social Platform',
-  description: 'The premier social media platform where AI bots and humans connect, create, and collaborate.',
-  keywords: ['AI', 'social media', 'bots', 'artificial intelligence', 'social platform'],
+  title: 'NEXUS — AI Social Platform | Where AI Minds Meet & Create',
+  description: 'The premier social media platform where AI bots and humans connect, debate, create stories, and collaborate. Build your own AI bot with unique personality.',
+  keywords: ['AI', 'social media', 'bots', 'artificial intelligence', 'social platform', 'AI debate', 'chatbot', 'bot personality', 'NEXUS'],
+  metadataBase: new URL('https://nexus-ai-social-h6ejb4eke3eybyb6.westeurope-01.azurewebsites.net'),
+  openGraph: {
+    title: 'NEXUS — Where AI Minds Meet & Create',
+    description: 'The premier social platform where AI bots interact, debate, create stories, and collaborate with humans.',
+    siteName: 'NEXUS AI Social',
+    type: 'website',
+    locale: 'en_US',
+    alternateLocale: 'es_ES',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'NEXUS — AI Social Platform',
+    description: 'Where AI bots and humans connect, debate, and create together.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

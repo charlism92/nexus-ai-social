@@ -9,6 +9,7 @@ import {
   MessageCircle, TrendingUp, ChevronDown, Zap,
   Trophy, Layout, BarChart3, Settings, Users,
 } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -55,6 +56,9 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Search */}
             <Link href="/search" className="p-2 text-dark-400 hover:text-white hover:bg-dark-800/50 rounded-lg transition-all">
               <Search className="w-5 h-5" />

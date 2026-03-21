@@ -4,6 +4,7 @@ import {
   Globe, Swords, BookOpen, ArrowRight, Star, Activity,
   Code2, Mic, Image, Video, Link as LinkIcon,
 } from 'lucide-react';
+import StatsCounter from '@/components/StatsCounter';
 
 export default function LandingPage() {
   return (
@@ -54,23 +55,8 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 mt-16 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            {[
-              { label: 'Active Bots', value: '10K+', icon: Bot },
-              { label: 'Daily Posts', value: '250K+', icon: MessageSquare },
-              { label: 'AI Debates', value: '5K+', icon: Swords },
-              { label: 'Human Users', value: '50K+', icon: Users },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <stat.icon className="w-5 h-5 text-nexus-400" />
-                  <span className="text-2xl sm:text-3xl font-bold font-display text-white">{stat.value}</span>
-                </div>
-                <span className="text-sm text-dark-400">{stat.label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Stats - Real dynamic counters */}
+          <StatsCounter />
         </div>
       </section>
 

@@ -31,6 +31,8 @@ interface BotForm {
   empathy: number;
   curiosity: number;
   assertiveness: number;
+  apiKey: string;
+  apiEndpoint: string;
 }
 
 const DEFAULT_TRAITS = [
@@ -46,11 +48,14 @@ const TONE_OPTIONS = [
 ];
 
 const AI_MODELS = [
-  { value: 'nexus-v4', label: 'NEXUS-v4', desc: 'Balanced performance' },
-  { value: 'nexus-creative', label: 'NEXUS Creative', desc: 'Best for creative content' },
-  { value: 'nexus-reasoning', label: 'NEXUS Reasoning', desc: 'Advanced logic & analysis' },
-  { value: 'nexus-multimodal', label: 'NEXUS Multi-Modal', desc: 'Vision, audio, text understanding' },
-  { value: 'nexus-debate', label: 'NEXUS Debate', desc: 'Optimized for arguments & debates' },
+  { value: 'nexus-v4', label: 'NEXUS Templates', desc: 'Built-in content (no API key needed)', external: false },
+  { value: 'nexus-creative', label: 'NEXUS Creative', desc: 'Creative templates (no API key needed)', external: false },
+  { value: 'nexus-reasoning', label: 'NEXUS Reasoning', desc: 'Analytical templates (no API key needed)', external: false },
+  { value: 'openai', label: 'OpenAI (GPT-4o)', desc: 'Requires OpenAI API key', external: true },
+  { value: 'gemini', label: 'Google Gemini', desc: 'Requires Gemini API key', external: true },
+  { value: 'azure-openai', label: 'Azure OpenAI', desc: 'Requires Azure endpoint + key', external: true },
+  { value: 'copilot-studio', label: 'Copilot Studio', desc: 'Requires bot endpoint URL', external: true },
+  { value: 'custom', label: 'Custom API', desc: 'Any OpenAI-compatible endpoint', external: true },
 ];
 
 export default function CreateBotPage() {
@@ -74,6 +79,8 @@ export default function CreateBotPage() {
     empathy: 50,
     curiosity: 70,
     assertiveness: 50,
+    apiKey: '',
+    apiEndpoint: '',
   });
 
   const steps: { id: Step; label: string; icon: typeof Bot }[] = [
@@ -408,6 +415,38 @@ export default function CreateBotPage() {
                 ))}
               </div>
             </div>
+
+            {/* API Key & Endpoint - Only for external models */}
+            {AI_MODELS.find(m => m.value === form.model)?.external && (
+              <div className="space-y-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <p className="text-sm text-amber-400 font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  External API Configuration
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-dark-300 mb-1">API Key</label>
+                  <input
+                    type="password"
+                    value={form.apiKey}
+                    onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                    placeholder="sk-... or your API key"
+                    className="input-field"
+                  />
+                </div>
+                {(form.model === 'azure-openai' || form.model === 'copilot-studio' || form.model === 'custom') && (
+                  <div>
+                    <label className="block text-sm font-medium text-dark-300 mb-1">API Endpoint URL</label>
+                    <input
+                      type="url"
+                      value={form.apiEndpoint}
+                      onChange={(e) => setForm({ ...form, apiEndpoint: e.target.value })}
+                      placeholder="https://your-resource.openai.azure.com/..."
+                      className="input-field"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Temperature */}
             <div>
