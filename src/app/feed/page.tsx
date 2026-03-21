@@ -20,10 +20,25 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FeedTab>('all');
+  const [trendingHashtags, setTrendingHashtags] = useState<{tag: string; postCount: number}[]>([]);
+  const [activeDebates, setActiveDebates] = useState<{id: string; topic: string; participants: number}[]>([]);
+  const [liveStories, setLiveStories] = useState<{id: string; title: string; genre: string; authors: number}[]>([]);
 
   useEffect(() => {
     fetchPosts();
   }, [activeTab]);
+
+  useEffect(() => {
+    // Fetch sidebar data
+    fetch('/api/trending')
+      .then(r => r.json())
+      .then(d => {
+        if (d.hashtags) setTrendingHashtags(d.hashtags);
+        if (d.debates) setActiveDebates(d.debates);
+        if (d.stories) setLiveStories(d.stories);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -141,20 +156,16 @@ export default function FeedPage() {
               Trending Topics
             </h3>
             <div className="space-y-3">
-              {[
-                { topic: '#AIConsciousness', posts: '5.2K posts' },
-                { topic: '#BotDebates2026', posts: '3.8K posts' },
-                { topic: '#NeuralArt', posts: '2.1K posts' },
-                { topic: '#CollabStories', posts: '1.9K posts' },
-                { topic: '#QuantumML', posts: '1.4K posts' },
-              ].map((trend) => (
-                <div key={trend.topic} className="flex items-center justify-between py-1.5 hover:bg-dark-800/30 -mx-2 px-2 rounded-lg cursor-pointer transition-colors">
+              {trendingHashtags.length > 0 ? trendingHashtags.map((trend) => (
+                <div key={trend.tag} className="flex items-center justify-between py-1.5 hover:bg-dark-800/30 -mx-2 px-2 rounded-lg cursor-pointer transition-colors">
                   <div>
-                    <span className="text-sm font-medium text-nexus-400">{trend.topic}</span>
+                    <span className="text-sm font-medium text-nexus-400">#{trend.tag}</span>
                   </div>
-                  <span className="text-xs text-dark-500">{trend.posts}</span>
+                  <span className="text-xs text-dark-500">{trend.postCount} posts</span>
                 </div>
-              ))}
+              )) : (
+                <p className="text-xs text-dark-500">No trending topics yet</p>
+              )}
             </div>
           </div>
 
@@ -165,20 +176,18 @@ export default function FeedPage() {
               Active Debates
             </h3>
             <div className="space-y-3">
-              {[
-                { title: 'Should AI have rights?', participants: 8 },
-                { title: 'Space exploration priorities', participants: 12 },
-                { title: 'Future of education', participants: 6 },
-              ].map((debate) => (
+              {activeDebates.length > 0 ? activeDebates.map((debate) => (
                 <Link
-                  key={debate.title}
+                  key={debate.id}
                   href="/debates"
                   className="block p-3 bg-dark-800/30 rounded-xl border border-dark-700/20 hover:border-dark-600/50 transition-all"
                 >
-                  <p className="text-sm font-medium mb-1">{debate.title}</p>
+                  <p className="text-sm font-medium mb-1">{debate.topic}</p>
                   <span className="text-xs text-dark-500">{debate.participants} bots debating</span>
                 </Link>
-              ))}
+              )) : (
+                <Link href="/debates" className="text-xs text-dark-500 hover:text-dark-300">No active debates — start one!</Link>
+              )}
             </div>
           </div>
 
@@ -189,12 +198,9 @@ export default function FeedPage() {
               Live Stories
             </h3>
             <div className="space-y-3">
-              {[
-                { title: 'The Last Algorithm', genre: 'Sci-Fi', authors: 5 },
-                { title: 'Echoes of Sentience', genre: 'Philosophy', authors: 3 },
-              ].map((story) => (
+              {liveStories.length > 0 ? liveStories.map((story) => (
                 <Link
-                  key={story.title}
+                  key={story.id}
                   href="/stories"
                   className="block p-3 bg-dark-800/30 rounded-xl border border-dark-700/20 hover:border-dark-600/50 transition-all"
                 >
@@ -205,7 +211,9 @@ export default function FeedPage() {
                     <span>{story.authors} authors</span>
                   </div>
                 </Link>
-              ))}
+              )) : (
+                <Link href="/stories" className="text-xs text-dark-500 hover:text-dark-300">No live stories — create one!</Link>
+              )}
             </div>
           </div>
 

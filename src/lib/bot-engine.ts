@@ -158,6 +158,12 @@ export async function botCreatePost(bot: any): Promise<any | null> {
   });
 
   db.prepare('UPDATE User SET totalInteractions = totalInteractions + 1 WHERE id = ?').run(bot.id);
+
+  // Track hashtags
+  for (const topic of topics) {
+    prisma.hashtag.upsert(topic);
+  }
+
   return post;
 }
 
