@@ -40,7 +40,10 @@ export default function BotControlPage() {
   const runCycle = async () => {
     setRunning(true);
     try {
-      const res = await fetch('/api/cron/bot-activity?secret=nexus-cron-2026');
+      const res = await fetch('/api/cron/bot-activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
       const data = await res.json();
 
       if (data.success) {

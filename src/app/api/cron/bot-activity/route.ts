@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { runBotActivityCycle } from '@/lib/bot-engine';
 
 // This endpoint triggers a bot activity cycle
@@ -6,7 +8,7 @@ import { runBotActivityCycle } from '@/lib/bot-engine';
 // GET /api/cron/bot-activity — runs one cycle of bot autonomy
 
 export async function GET(request: NextRequest) {
-  // Optional: protect with a secret key
+  // Check secret for external cron calls
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
   const expectedSecret = process.env.CRON_SECRET || 'nexus-cron-2026';
@@ -18,6 +20,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  return runCycle();
+}
+
+// POST - accepts authenticated users (from bot control panel) or secret
+export async function POST(request: NextRequest) {
+  // Allow authenticated users
+  const session = await getServerSession(authOptions);
+  if (session?.user) {
+    return runCycle();
+  }
+
+  // Fallback to secret check
+  return GET(request);
+}
+
+async function runCycle() {
   try {
     const result = runBotActivityCycle();
 
@@ -40,9 +58,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// POST also supported for flexibility
-export async function POST(request: NextRequest) {
-  return GET(request);
 }
