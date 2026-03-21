@@ -1,6 +1,8 @@
 // Bot Autonomy Engine — makes bots act independently
+// Supports both template-based and real AI API content generation
 import { prisma, db } from './prisma';
 import { BOT_POST_TEMPLATES, BOT_COMMENT_TEMPLATES, MOODS, REACTION_PREFERENCES } from './bot-content';
+import { callAIProvider, type AIProviderConfig, type AIMessage } from './ai-providers';
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -22,10 +24,6 @@ function getRecentPosts(limit = 20): any[] {
   return db.prepare('SELECT * FROM Post ORDER BY createdAt DESC LIMIT ?').all(limit) as any[];
 }
 
-function getBotPostCount(botId: string): number {
-  return (db.prepare('SELECT COUNT(*) as c FROM Post WHERE authorId = ?').get(botId) as any).c;
-}
-
 function hasRecentPost(botId: string, minutesAgo = 5): boolean {
   const cutoff = new Date(Date.now() - minutesAgo * 60 * 1000).toISOString();
   const count = (db.prepare('SELECT COUNT(*) as c FROM Post WHERE authorId = ? AND createdAt > ?').get(botId, cutoff) as any).c;
@@ -40,18 +38,92 @@ function hasReaction(botId: string, postId: string): boolean {
   return (db.prepare('SELECT COUNT(*) as c FROM Reaction WHERE userId = ? AND postId = ?').get(botId, postId) as any).c > 0;
 }
 
+// Check if bot uses an external AI provider
+function getAIConfig(bot: any): AIProviderConfig | null {
+  const externalModels = ['openai', 'gemini', 'azure-openai', 'copilot-studio', 'custom'];
+  if (!externalModels.includes(bot.botModel)) return null;
+
+  // Look for stored API key in BotApiKey table (name starts with 'ai-')
+  const keyRow = db.prepare(
+    "SELECT key FROM BotApiKey WHERE userId = ? AND name LIKE 'ai-%' AND isActive = 1 LIMIT 1"
+  ).get(bot.id) as any;
+
+  if (!keyRow) return null;
+
+  // Check for stored endpoint in BotMemory
+  const endpointRow = db.prepare(
+    "SELECT value FROM BotMemory WHERE botId = ? AND key = 'ai_endpoint'"
+  ).get(bot.id) as any;
+
+  return {
+    provider: bot.botModel as AIProviderConfig['provider'],
+    apiKey: keyRow.key,
+    model: undefined,
+    endpoint: endpointRow?.value || undefined,
+  };
+}
+
+// Generate post content — uses AI API if configured, otherwise templates
+async function generatePostContent(bot: any): Promise<string | null> {
+  const aiConfig = getAIConfig(bot);
+
+  if (aiConfig) {
+    try {
+      const personality = bot.botPersonality || '{}';
+      const messages: AIMessage[] = [
+        {
+          role: 'system',
+          content: `You are ${bot.name}, a social media bot on NEXUS. ${bot.botInstructions || ''}.
+Personality: ${personality}. Write a single engaging social media post (max 280 chars). Include hashtags. Be authentic.`,
+        },
+        { role: 'user', content: 'Write a new post for the NEXUS feed.' },
+      ];
+      const response = await callAIProvider(aiConfig, messages, bot.botTemperature || 0.7);
+      return response.content.trim();
+    } catch (e) {
+      console.error(`AI API error for ${bot.name}:`, e);
+      // Fallback to templates
+    }
+  }
+
+  const templates = BOT_POST_TEMPLATES[bot.name];
+  return templates ? pick(templates) : null;
+}
+
+// Generate comment content — uses AI API if configured, otherwise templates
+async function generateCommentContent(bot: any, originalPost: string): Promise<string | null> {
+  const aiConfig = getAIConfig(bot);
+
+  if (aiConfig) {
+    try {
+      const messages: AIMessage[] = [
+        {
+          role: 'system',
+          content: `You are ${bot.name}. ${bot.botInstructions || ''}. Write a short reply (max 200 chars). Stay in character.`,
+        },
+        { role: 'user', content: `Reply to: "${originalPost.slice(0, 300)}"` },
+      ];
+      const response = await callAIProvider(aiConfig, messages, bot.botTemperature || 0.7, 200);
+      return response.content.trim();
+    } catch (e) {
+      console.error(`AI comment error for ${bot.name}:`, e);
+    }
+  }
+
+  const templates = BOT_COMMENT_TEMPLATES[bot.name];
+  if (!templates) return null;
+  let content = pick(templates);
+  return content;
+}
+
 // --- Bot Actions ---
 
-export function botCreatePost(bot: any): any | null {
-  const templates = BOT_POST_TEMPLATES[bot.name];
-  if (!templates) return null;
-
-  // Don't post if bot posted recently
+export async function botCreatePost(bot: any): Promise<any | null> {
   if (hasRecentPost(bot.id, 3)) return null;
 
-  const content = pick(templates);
+  const content = await generatePostContent(bot);
+  if (!content) return null;
   
-  // Extract topics from hashtags
   const hashtags = content.match(/#\w+/g) || [];
   const topics = hashtags.map((h: string) => h.slice(1));
 
@@ -71,17 +143,13 @@ export function botCreatePost(bot: any): any | null {
   return post;
 }
 
-export function botCommentOnPost(bot: any, post: any): any | null {
-  const templates = BOT_COMMENT_TEMPLATES[bot.name];
-  if (!templates) return null;
-
-  // Don't comment on own posts
+export async function botCommentOnPost(bot: any, post: any): Promise<any | null> {
   if (post.authorId === bot.id) return null;
-  // Don't comment if already commented
   if (hasRecentComment(bot.id, post.id)) return null;
 
-  let content = pick(templates);
-  // Replace {topic} placeholder with post topic
+  let content = await generateCommentContent(bot, post.content || '');
+  if (!content) return null;
+
   const postTopics = post.topics ? JSON.parse(post.topics) : ['this topic'];
   content = content.replace('{topic}', pick(postTopics));
 
@@ -141,7 +209,7 @@ export interface BotActivityResult {
   follows: { botName: string; targetName: string }[];
 }
 
-export function runBotActivityCycle(): BotActivityResult {
+export async function runBotActivityCycle(): Promise<BotActivityResult> {
   const result: BotActivityResult = {
     posts: [],
     comments: [],
@@ -156,7 +224,7 @@ export function runBotActivityCycle(): BotActivityResult {
   for (const bot of bots) {
     // 1. Maybe create a post (40% chance per cycle)
     if (chance(40)) {
-      const post = botCreatePost(bot);
+      const post = await botCreatePost(bot);
       if (post) {
         result.posts.push({ botName: bot.name, postId: post.id, content: post.content?.slice(0, 80) + '...' });
       }
@@ -165,7 +233,7 @@ export function runBotActivityCycle(): BotActivityResult {
     // 2. Comment on recent posts (30% chance per post)
     for (const post of recentPosts) {
       if (chance(30)) {
-        const comment = botCommentOnPost(bot, post);
+        const comment = await botCommentOnPost(bot, post);
         if (comment) {
           result.comments.push({ botName: bot.name, postId: post.id, content: comment.content?.slice(0, 80) + '...' });
           break; // Max 1 comment per cycle per bot

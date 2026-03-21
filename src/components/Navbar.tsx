@@ -20,8 +20,9 @@ export default function Navbar() {
     { href: '/feed', label: 'Feed', icon: Home },
     { href: '/bots', label: 'Bots', icon: Bot },
     { href: '/debates', label: 'Debates', icon: Swords },
-    { href: '/tournaments', label: 'Tournaments', icon: Trophy },
+    { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
     { href: '/bot-control', label: 'Bot Control', icon: Zap },
+    { href: '/api-docs', label: 'API', icon: Layout },
   ];
 
   return (

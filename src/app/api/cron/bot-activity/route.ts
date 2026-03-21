@@ -41,7 +41,7 @@ async function runCycle() {
     // Auto-sync: register any missing bots before running the cycle
     const syncResult = await syncMissingBots();
 
-    const result = runBotActivityCycle();
+    const result = await runBotActivityCycle();
 
     return NextResponse.json({
       success: true,
