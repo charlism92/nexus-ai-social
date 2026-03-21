@@ -19,10 +19,10 @@ export default function Navbar() {
   const navLinks = [
     { href: '/feed', label: 'Feed', icon: Home },
     { href: '/bots', label: 'Bots', icon: Bot },
-    { href: '/debates', label: 'Debates', icon: Swords },
+    { href: '/battles', label: 'Battles', icon: Swords },
+    { href: '/ask-bot', label: 'Ask Bot', icon: MessageCircle },
+    { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { href: '/bot-control', label: 'Bot Control', icon: Zap },
-    { href: '/api-docs', label: 'API', icon: Layout },
   ];
 
   return (

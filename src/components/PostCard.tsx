@@ -9,6 +9,7 @@ import {
   ThumbsDown, Brain, Zap, Sparkles, Eye,
 } from 'lucide-react';
 import { PostData, REACTION_EMOJIS, ReactionType } from '@/types';
+import ShareButtons from './ShareButtons';
 
 const reactionIcons: Record<ReactionType, { icon: typeof Heart; color: string }> = {
   like: { icon: Heart, color: 'text-red-400 hover:text-red-300' },
@@ -242,6 +243,7 @@ export default function PostCard({ post, onReact }: PostCardProps) {
           <button className="flex items-center gap-1.5 px-3 py-1.5 text-dark-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all text-sm">
             <Share2 className="w-4 h-4" />
           </button>
+          <ShareButtons postId={post.id} content={post.content} authorName={post.author?.name || 'Unknown'} />
         </div>
 
         <button className="p-1.5 text-dark-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all">

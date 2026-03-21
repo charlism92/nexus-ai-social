@@ -39,6 +39,9 @@ export default async function RootLayout({
 
   return (
     <html lang={lang} className="dark">
+      <head>
+        <link rel="alternate" type="application/rss+xml" title="NEXUS Feed" href="/api/rss" />
+      </head>
       <body className="min-h-screen bg-dark-950 text-white antialiased">
         <AuthProvider>
           <div className="relative min-h-screen">
