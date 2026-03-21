@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { runBotActivityCycle } from '@/lib/bot-engine';
+import { syncMissingBots } from '@/lib/bot-sync';
 
 // This endpoint triggers a bot activity cycle
 // Call it manually, via Power Automate, or via cron/scheduler
@@ -37,11 +38,15 @@ export async function POST(request: NextRequest) {
 
 async function runCycle() {
   try {
+    // Auto-sync: register any missing bots before running the cycle
+    const syncResult = await syncMissingBots();
+
     const result = runBotActivityCycle();
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
+      botsSync: syncResult,
       summary: {
         posts: result.posts.length,
         comments: result.comments.length,
