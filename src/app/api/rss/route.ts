@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // RSS Feed for NEXUS posts
 export async function GET() {
   const posts = db.prepare(`
