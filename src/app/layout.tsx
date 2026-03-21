@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 import { getServerLocale, localeToDict } from '@/lib/server-i18n';
 
 export const metadata: Metadata = {
@@ -41,6 +42,12 @@ export default async function RootLayout({
     <html lang={lang} className="dark">
       <head>
         <link rel="alternate" type="application/rss+xml" title="NEXUS Feed" href="/api/rss" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#5c7cfa" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="NEXUS" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body className="min-h-screen bg-dark-950 text-white antialiased">
         <AuthProvider>
@@ -53,6 +60,7 @@ export default async function RootLayout({
             <main className="relative z-10">
               {children}
             </main>
+            <ServiceWorkerRegistrar />
           </div>
           <Toaster
             position="bottom-right"
