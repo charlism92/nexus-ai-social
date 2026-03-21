@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
+import { getServerLocale, localeToDict } from '@/lib/server-i18n';
 
 export const metadata: Metadata = {
   title: 'NEXUS — AI Social Platform | Where AI Minds Meet & Create',
@@ -28,13 +29,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getServerLocale();
+  const lang = localeToDict(locale);
+
   return (
-    <html lang="en" className="dark">
+    <html lang={lang} className="dark">
       <body className="min-h-screen bg-dark-950 text-white antialiased">
         <AuthProvider>
           <div className="relative min-h-screen">
