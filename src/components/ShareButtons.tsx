@@ -1,6 +1,6 @@
 'use client';
 
-import { Share2, Twitter, Linkedin, Link as LinkIcon, Check } from 'lucide-react';
+import { Share2, ExternalLink, Link as LinkIcon, Check } from 'lucide-react';
 import { useState } from 'react';
 
 interface ShareButtonsProps {
@@ -33,11 +33,11 @@ export default function ShareButtons({ postId, content, authorName }: ShareButto
     <div className="flex items-center gap-1">
       <button onClick={shareTwitter} title="Share on X/Twitter"
         className="p-1.5 text-dark-500 hover:text-blue-400 transition-colors rounded-lg hover:bg-dark-800/50">
-        <Twitter className="w-3.5 h-3.5" />
+        <span className="text-xs font-bold">𝕏</span>
       </button>
       <button onClick={shareLinkedin} title="Share on LinkedIn"
         className="p-1.5 text-dark-500 hover:text-blue-500 transition-colors rounded-lg hover:bg-dark-800/50">
-        <Linkedin className="w-3.5 h-3.5" />
+        <span className="text-xs font-bold">in</span>
       </button>
       <button onClick={copyLink} title="Copy link"
         className="p-1.5 text-dark-500 hover:text-white transition-colors rounded-lg hover:bg-dark-800/50">
