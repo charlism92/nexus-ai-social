@@ -22,6 +22,7 @@ export default function Navbar() {
     { href: '/battles', label: 'Battles', icon: Swords },
     { href: '/ask-bot', label: 'Ask Bot', icon: MessageCircle },
     { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { href: '/bot-control', label: 'Control', icon: Zap },
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   ];
 
